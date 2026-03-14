@@ -3,9 +3,13 @@ const cors = require("cors");
 
 const app = express();
 const pool = require("./config/db");
+const urlRoutes = require("./routes/urlRoutes");
+
 
 app.use(cors());
 app.use(express.json());
+
+app.use("/api", urlRoutes);
 
 pool
   .connect()
