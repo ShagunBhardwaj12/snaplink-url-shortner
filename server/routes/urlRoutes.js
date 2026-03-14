@@ -22,4 +22,18 @@ router.post("/shorten", async (req, res) => {
   });
 });
 
+
+router.get("/links", async (req, res) => {
+  try {
+    const result = await pool.query(
+      "SELECT * FROM urls ORDER BY created_at DESC",
+    );
+
+    res.json(result.rows);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
 module.exports = router;

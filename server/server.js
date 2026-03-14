@@ -3,6 +3,35 @@ const cors = require("cors");
 
 const app = express();
 const pool = require("./config/db");
+app.get("/:shortCode", async (req, res) => {
+
+  const { shortCode } = req.params;
+
+  try {
+
+    const result = await pool.query(
+      "SELECT original_url FROM urls WHERE short_code=$1",
+      [shortCode]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).send("URL not found");
+    }
+
+    const originalUrl = result.rows[0].original_url;
+
+     await pool.query(
+       "UPDATE urls SET click_count = click_count + 1 WHERE short_code=$1",
+       [shortCode],
+     );
+
+    res.redirect(originalUrl);
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Server error");
+  }
+});
 const urlRoutes = require("./routes/urlRoutes");
 
 
