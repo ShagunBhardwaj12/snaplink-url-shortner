@@ -1,8 +1,9 @@
 import { useState } from "react";
+import API from "../services/api";
 
 const Hero = () => {
   const [url, setUrl] = useState("");
-  const [shortened, setShortened] = useState("");
+  const [shortened, setShortened] = useState(""); // full short URL string
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState("");
@@ -16,27 +17,57 @@ const Hero = () => {
     }
   };
 
-  const handleShorten = () => {
-    if (!url.trim()) {
+  // ── Real API call ──────────────────────────────────────────────────────────
+  const handleShorten = async () => {
+    const trimmed = url.trim();
+    if (!trimmed) {
       setError("Please enter a URL.");
       return;
     }
-    if (!isValidUrl(url)) {
-      setError("Please enter a valid URL.");
+    if (!isValidUrl(trimmed)) {
+      setError("Please enter a valid URL (e.g. https://example.com).");
       return;
     }
+
     setError("");
     setLoading(true);
     setShortened("");
-    setTimeout(() => {
-      const slug = Math.random().toString(36).slice(2, 8);
-      setShortened(`snaplink.io/${slug}`);
+
+    const fullUrl = trimmed.startsWith("http") ? trimmed : `https://${trimmed}`;
+
+    try {
+      const { data } = await API.post("/shorten", { url: fullUrl }); // ✅ matches backend field name
+
+      // Handle both { shortUrl: "http://..." } and { shortCode: "abc123" }
+      const result =
+        data.shortUrl ||
+        (data.shortCode ? `http://localhost:5000/${data.shortCode}` : null) ||
+        data.data?.shortUrl || // nested { data: { shortUrl } }
+        data.url; // some backends return { url }
+
+      if (!result) {
+        console.warn("[API] Unexpected response shape:", data);
+        throw new Error(
+          "Unexpected response from server. Check browser console for details.",
+        );
+      }
+
+      setShortened(result);
+    } catch (err) {
+      const msg =
+        err?.response?.data?.message ||
+        err?.response?.data?.error ||
+        err?.message ||
+        "Something went wrong. Please try again.";
+      setError(msg);
+    } finally {
       setLoading(false);
-    }, 1200);
+    }
   };
+  // ──────────────────────────────────────────────────────────────────────────
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(`https://${shortened}`);
+    navigator.clipboard.writeText(shortened);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -49,17 +80,53 @@ const Hero = () => {
     <>
       {/* Google Fonts */}
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;600&display=swap');
- 
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Bricolage+Grotesque:wght@400;500;700;800&display=swap');
+
         .hero-root {
-          font-family: 'DM Sans', sans-serif;
+          font-family: 'Plus Jakarta Sans', sans-serif;
         }
- 
+
         .hero-heading {
-          font-family: 'Syne', sans-serif;
+          font-family: 'Bricolage Grotesque', sans-serif;
           font-weight: 800;
+          letter-spacing: -0.03em;
         }
- 
+
+        .hero-sub {
+          font-family: 'Plus Jakarta Sans', sans-serif;
+          font-weight: 500;
+          letter-spacing: -0.01em;
+        }
+
+        /* Badge glow */
+        .badge-pill {
+          background: linear-gradient(135deg, #eef2ff 0%, #f5f3ff 100%);
+          border: 1px solid rgba(99,102,241,0.2);
+          box-shadow: 0 1px 3px rgba(99,102,241,0.08), inset 0 1px 0 rgba(255,255,255,0.9);
+        }
+
+        /* Headline highlight chip */
+        .headline-chip {
+          display: inline-block;
+          position: relative;
+          color: #4f46e5;
+          white-space: nowrap;
+        }
+        .headline-chip::before {
+          content: '';
+          position: absolute;
+          inset: -4px -10px;
+          background: linear-gradient(135deg, #eef2ff, #ede9fe);
+          border-radius: 10px;
+          z-index: -1;
+          transform: rotate(-0.8deg);
+        }
+
+        /* Divider line for stats */
+        .stat-divider {
+          border-left: 1px solid rgba(0,0,0,0.08);
+        }
+
         /* Animated gradient orbs */
         @keyframes float-a {
           0%, 100% { transform: translate(0, 0) scale(1); }
@@ -73,11 +140,11 @@ const Hero = () => {
           0%, 100% { transform: translate(0, 0) scale(1); }
           50% { transform: translate(15px, 20px) scale(1.06); }
         }
- 
+
         .orb-a { animation: float-a 9s ease-in-out infinite; }
         .orb-b { animation: float-b 11s ease-in-out infinite; }
         .orb-c { animation: float-c 13s ease-in-out infinite; }
- 
+
         /* Fade-up stagger */
         @keyframes fadeUp {
           from { opacity: 0; transform: translateY(28px); }
@@ -88,7 +155,7 @@ const Hero = () => {
         .fade-up-3 { animation: fadeUp 0.7s cubic-bezier(.22,1,.36,1) both; animation-delay: 0.32s; }
         .fade-up-4 { animation: fadeUp 0.7s cubic-bezier(.22,1,.36,1) both; animation-delay: 0.46s; }
         .fade-up-5 { animation: fadeUp 0.7s cubic-bezier(.22,1,.36,1) both; animation-delay: 0.60s; }
- 
+
         /* Shimmer on CTA button */
         @keyframes shimmer {
           0%   { background-position: -200% center; }
@@ -105,7 +172,7 @@ const Hero = () => {
           box-shadow: 0 8px 30px rgba(99,60,237,0.45);
         }
         .btn-shorten:active { transform: scale(0.97); }
- 
+
         /* Loader dots */
         @keyframes bounce {
           0%, 80%, 100% { transform: scale(0); opacity: 0.4; }
@@ -114,14 +181,14 @@ const Hero = () => {
         .dot { animation: bounce 1.2s infinite ease-in-out; }
         .dot:nth-child(2) { animation-delay: 0.2s; }
         .dot:nth-child(3) { animation-delay: 0.4s; }
- 
+
         /* Result slide-in */
         @keyframes slideIn {
           from { opacity: 0; transform: translateY(12px); }
           to   { opacity: 1; transform: translateY(0); }
         }
         .result-card { animation: slideIn 0.4s cubic-bezier(.22,1,.36,1) both; }
- 
+
         /* Pill badge */
         @keyframes pulse-ring {
           0%   { box-shadow: 0 0 0 0 rgba(99,102,241,.45); }
@@ -129,25 +196,24 @@ const Hero = () => {
           100% { box-shadow: 0 0 0 0 rgba(99,102,241,0); }
         }
         .badge-dot { animation: pulse-ring 2.2s infinite; }
- 
-        /* Grid lines background */
-        .grid-bg {
-          background-image:
-            linear-gradient(rgba(99,102,241,0.06) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(99,102,241,0.06) 1px, transparent 1px);
-          background-size: 48px 48px;
+
+        /* Dot pattern background */
+        .dot-bg {
+          background-image: radial-gradient(circle, rgba(99,102,241,0.13) 1.2px, transparent 1.2px);
+          background-size: 30px 30px;
         }
- 
-        /* Stat counter shimmer */
+
+        /* Stat counter font */
         .stat-num {
-          font-family: 'Syne', sans-serif;
+          font-family: 'Bricolage Grotesque', sans-serif;
           font-weight: 700;
+          letter-spacing: -0.02em;
         }
       `}</style>
 
-      <section className="hero-root relative min-h-screen flex flex-col items-center justify-center overflow-hidden bg-[#f8f7ff] pt-20 pb-16 px-4">
-        {/* Grid background */}
-        <div className="grid-bg absolute inset-0 pointer-events-none" />
+      <section className="hero-root relative min-h-screen flex flex-col items-center justify-center overflow-hidden bg-[#fafafa] pt-20 pb-16 px-4">
+        {/* Dot background */}
+        <div className="dot-bg absolute inset-0 pointer-events-none opacity-60" />
 
         {/* Gradient orbs */}
         <div className="absolute inset-0 pointer-events-none overflow-hidden">
@@ -159,52 +225,23 @@ const Hero = () => {
         {/* Content */}
         <div className="relative z-10 max-w-3xl mx-auto text-center">
           {/* Badge */}
-          <div className="fade-up-1 inline-flex items-center gap-2 mb-7 px-4 py-1.5 rounded-full bg-white border border-indigo-100 shadow-sm text-indigo-600 text-sm font-medium">
-            <span className="badge-dot w-2 h-2 rounded-full bg-indigo-500 inline-block" />
+          <div className="fade-up-1 inline-flex items-center gap-2 mb-8 px-4 py-2 rounded-full badge-pill text-indigo-700 text-sm font-semibold tracking-wide">
+            <span className="badge-dot w-2 h-2 rounded-full bg-indigo-500 inline-block flex-shrink-0" />
             Trusted by 10M+ marketers worldwide
+            <span className="ml-1 text-indigo-400">✦</span>
           </div>
 
           {/* Headline */}
-          <h1 className="hero-heading fade-up-2 text-5xl sm:text-6xl lg:text-7xl text-gray-900 leading-[1.05] tracking-tight mb-6">
-            Short links,{" "}
-            <span className="relative inline-block">
-              <span className="relative z-10 bg-gradient-to-r from-indigo-600 via-violet-600 to-blue-500 bg-clip-text text-transparent">
-                big impact
-              </span>
-              {/* Underline squiggle */}
-              <svg
-                className="absolute -bottom-2 left-0 w-full"
-                viewBox="0 0 300 12"
-                preserveAspectRatio="none"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  d="M2 8 C50 2, 100 12, 150 6 S250 2, 298 8"
-                  stroke="url(#squiggle-grad)"
-                  strokeWidth="3"
-                  strokeLinecap="round"
-                />
-                <defs>
-                  <linearGradient
-                    id="squiggle-grad"
-                    x1="0"
-                    y1="0"
-                    x2="1"
-                    y2="0"
-                  >
-                    <stop offset="0%" stopColor="#6366f1" />
-                    <stop offset="100%" stopColor="#3b82f6" />
-                  </linearGradient>
-                </defs>
-              </svg>
-            </span>
+          <h1 className="hero-heading fade-up-2 text-[2.8rem] sm:text-[3.8rem] lg:text-[4.8rem] text-gray-950 leading-[1.08] mb-5">
+            The fastest way to
+            <br />
+            share <span className="headline-chip">smarter links</span>
           </h1>
 
           {/* Subheading */}
-          <p className="fade-up-3 text-lg sm:text-xl text-gray-500 max-w-xl mx-auto mb-10 leading-relaxed">
-            Shorten, brand, and track every link you share — in one powerful
-            platform built for modern teams.
+          <p className="hero-sub fade-up-3 text-[1.1rem] sm:text-xl text-gray-500 max-w-[520px] mx-auto mb-10 leading-[1.7]">
+            Shorten, brand & track every link — one platform for teams who care
+            about every click.
           </p>
 
           {/* URL Input Box */}
@@ -302,7 +339,7 @@ const Hero = () => {
                       Your short link is ready
                     </p>
                     <a
-                      href={`https://${shortened}`}
+                      href={shortened}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-indigo-600 font-semibold text-base hover:underline truncate block"
@@ -377,19 +414,20 @@ const Hero = () => {
           </div>
 
           {/* Stats row */}
-          <div className="fade-up-5 mt-16 grid grid-cols-3 gap-6 max-w-lg mx-auto">
+          <div className="fade-up-5 mt-14 flex items-center justify-center divide-x divide-gray-200 rounded-2xl bg-white/70 backdrop-blur-sm border border-gray-100 shadow-sm max-w-md mx-auto overflow-hidden">
             {[
               { num: "10B+", label: "Links shortened" },
               { num: "99.9%", label: "Uptime SLA" },
-              { num: "180+", label: "Countries served" },
+              { num: "180+", label: "Countries" },
             ].map(({ num, label }) => (
-              <div key={label} className="flex flex-col items-center gap-1">
-                <div className="stat-num text-2xl sm:text-3xl text-gray-900">
+              <div
+                key={label}
+                className="flex-1 flex flex-col items-center py-4 px-2 gap-0.5"
+              >
+                <div className="stat-num text-xl sm:text-2xl text-gray-900">
                   {num}
                 </div>
-                <div className="text-xs sm:text-sm text-gray-400 font-medium">
-                  {label}
-                </div>
+                <div className="text-xs text-gray-400 font-medium">{label}</div>
               </div>
             ))}
           </div>
@@ -404,8 +442,8 @@ const Hero = () => {
                 (brand) => (
                   <span
                     key={brand}
-                    className="text-gray-600 font-semibold text-sm sm:text-base"
-                    style={{ fontFamily: "'Syne', sans-serif" }}
+                    className="text-gray-500 font-bold text-sm sm:text-base"
+                    style={{ fontFamily: "'Bricolage Grotesque', sans-serif" }}
                   >
                     {brand}
                   </span>

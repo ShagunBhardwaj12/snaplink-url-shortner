@@ -1,6 +1,9 @@
 const express = require("express");
 const cors = require("cors");
+const dotenv = require("dotenv");
 
+// Load env variables
+dotenv.config();
 const app = express();
 const pool = require("./config/db");
 app.get("/:shortCode", async (req, res) => {
@@ -32,12 +35,12 @@ app.get("/:shortCode", async (req, res) => {
     res.status(500).send("Server error");
   }
 });
-const urlRoutes = require("./routes/urlRoutes");
 
 
 app.use(cors());
 app.use(express.json());
 
+const urlRoutes = require("./routes/urlRoutes");
 app.use("/api", urlRoutes);
 
 pool
