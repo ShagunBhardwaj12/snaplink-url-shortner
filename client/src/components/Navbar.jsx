@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-
+import { Link } from "react-router-dom";
 const Navbar = () => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
@@ -81,18 +81,18 @@ const Navbar = () => {
 
           {/* Right Actions — Desktop */}
           <div className="hidden md:flex items-center gap-3">
-            <a
-              href="/login"
+            <Link
+              to="/login"
               className="px-4 py-2 text-base font-medium text-gray-700 hover:text-gray-900 transition-colors duration-150 rounded-md hover:bg-gray-50"
             >
               Log in
-            </a>
-            <a
-              href="/signup"
+            </Link>
+            <Link
+              to="/signup"
               className="px-4 py-2 text-base font-semibold text-white bg-gradient-to-r from-violet-600 to-indigo-600 rounded-lg hover:from-violet-700 hover:to-indigo-700 shadow-sm hover:shadow-md hover:shadow-violet-100 transition-all duration-200 active:scale-[0.98]"
             >
               Sign up free
-            </a>
+            </Link>
           </div>
 
           {/* Mobile Hamburger */}
@@ -142,18 +142,18 @@ const Navbar = () => {
             </a>
           ))}
           <div className="pt-3 flex flex-col gap-2">
-            <a
-              href="/login"
+            <Link
+              to="/login"
               className="block text-center px-4 py-2.5 text-base font-medium text-gray-700 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors duration-150"
             >
               Log in
-            </a>
-            <a
-              href="/signup"
+            </Link>
+            <Link
+              to="/signup"
               className="block text-center px-4 py-2.5 text-base font-semibold text-white bg-gradient-to-r from-violet-600 to-indigo-600 rounded-lg hover:from-violet-700 hover:to-indigo-700 transition-all duration-200"
             >
               Sign up free
-            </a>
+            </Link>
           </div>
         </div>
       </div>
