@@ -1,5 +1,5 @@
 const urlService = require("../services/urlServices");
-
+const auth = require("../middleware/auth");
 exports.createShortUrl = async (req, res) => {
   try {
     const { url } = req.body;
